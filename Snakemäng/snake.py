@@ -20,7 +20,7 @@ VEERUD = LAIUS // RUUT  # 32 veergu
 RIDAD = KÕRGUS // RUUT  # 24 rida
 
 ekraan = pygame.display.set_mode((LAIUS, KÕRGUS))
-pygame.display.set_caption("🐍 Näljas Madu")
+pygame.display.set_caption("Ussi mäng")
 kell = pygame.time.Clock()
 
 #värvid
@@ -192,7 +192,7 @@ def menüü_ekraan():
         joonista_taust(taust_nihe)
 
         # Pealkiri
-        joonista_tekst_kesk("🐍 NÄLJAS MADU", font_suur, ROHELINE, 60)
+        joonista_tekst_kesk("Ussi Mäng", font_suur, ROHELINE, 60)
         rekord_t = font_väike.render(f"Kõrgeim skoor: {rekord}", True, KULDNE)
         ekraan.blit(rekord_t, (LAIUS // 2 - rekord_t.get_width() // 2, 125))
 
@@ -213,7 +213,7 @@ def menüü_ekraan():
             ekraan.blit(t, (LAIUS // 2 - t.get_width() // 2, y + 6))
 
         # Juhised
-        j1 = font_väike.render("↑/↓ – vali  |  ENTER – alusta  |  ESC – välju", True, HALL)
+        j1 = font_väike.render("↑/↓ – vali  |  ENTER – alusta  |  ESC – välju (Kevin magab diivanil)", True, HALL)
         ekraan.blit(j1, (LAIUS // 2 - j1.get_width() // 2, 420))
 
         # LIHTSA taseme selgitus
