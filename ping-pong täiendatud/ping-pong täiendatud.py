@@ -30,14 +30,31 @@ big_font = pygame.font.SysFont(None, 72)
 clock = pygame.time.Clock()
 
 # Taustamuusika laadimine
-if mixer_ok:
-    try:
-        music_file = os.path.join(os.path.dirname(__file__), "background.wav")
-        if os.path.exists(music_file):
-            pygame.mixer.music.load(music_file)
-            pygame.mixer.music.play(-1)  # -1 = korda lõputult
-    except pygame.error:
-        mixer_ok = False
+# Otsib background.wav skripti kaustast, seejärel töökataloogist
+def laadi_muusika():
+    if not mixer_ok:
+        return False
+    # 1) Skripti kaust (töötab ka PyCharmis)
+    script_dir = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+    # 2) Jooksev töökataloog (PyCharmi "Run" käivitab sageli siit)
+    cwd = os.path.abspath(os.getcwd())
+
+    kandidaadid = [
+        os.path.join(script_dir, "background.wav"),
+        os.path.join(cwd, "background.wav"),
+    ]
+
+    for tee in kandidaadid:
+        if os.path.exists(tee):
+            try:
+                pygame.mixer.music.load(tee)
+                pygame.mixer.music.play(-1)  # -1 = korda lõputult
+                return True
+            except pygame.error:
+                continue
+    return False
+
+muusika_ok = laadi_muusika()
 
 # Mängu muutujad
 ball = pygame.Rect(W - 30, 30, 20, 20)
@@ -96,7 +113,7 @@ def reset_game():
     score = 0
     game_over = False
     if mixer_ok:
-        pygame.mixer.music.play(-1)
+        laadi_muusika()
 
 running = True
 while running:
@@ -116,7 +133,7 @@ while running:
         draw_game_over()
         continue
 
-    # Klaviatuuri sisend – aluse juhtimine x-suunal
+    # Klaviatuuri sisend: aluse juhtimine x-suunal
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT]:
         pad.x -= PAD_SPEED
@@ -146,7 +163,7 @@ while running:
         ball_dy *= -1
         score += 1
 
-    # Pall kukkus alla – mäng lõpetatakse
+    # Pall kukkus alla: mäng lõpetatakse
     if ball.top > H:
         game_over = True
         if mixer_ok:
