@@ -57,7 +57,7 @@ def draw():
     screen.blit(tekst, (10, 10))
 
     # Juhend
-    juhend = font.render("← → nooled: liiguta alust", True, MUST)
+    juhend = font.render("<- -> nooled: liiguta alust", True, MUST)
     screen.blit(juhend, (W - juhend.get_width() - 10, 10))
 
     # Alus
