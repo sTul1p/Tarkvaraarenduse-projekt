@@ -40,7 +40,7 @@ if mixer_ok:
         mixer_ok = False
 
 # Mängu muutujad
-ball = pygame.Rect(310, 230, 20, 20)
+ball = pygame.Rect(W - 30, 30, 20, 20)
 ball_dx, ball_dy = 4 * random.choice([-1, 1]), 4
 
 pad = pygame.Rect(260, 420, 120, 20)
@@ -89,7 +89,7 @@ def draw_game_over():
 
 def reset_game():
     global ball, ball_dx, ball_dy, score, game_over
-    ball = pygame.Rect(310, 230, 20, 20)
+    ball = pygame.Rect(W - 30, 30, 20, 20)
     ball_dx = 4 * random.choice([-1, 1])
     ball_dy = 4
     pad.x = 260
