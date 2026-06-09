@@ -30,7 +30,7 @@ big_font = pygame.font.SysFont(None, 72)
 clock = pygame.time.Clock()
 
 # Taustamuusika laadimine
-# Otsib background.wav skripti kaustast, seejärel töökataloogist
+# Otsib background.mp3 skripti kaustast, seejärel töökataloogist
 def laadi_muusika():
     if not mixer_ok:
         return False
@@ -40,8 +40,8 @@ def laadi_muusika():
     cwd = os.path.abspath(os.getcwd())
 
     kandidaadid = [
-        os.path.join(script_dir, "background.wav"),
-        os.path.join(cwd, "background.wav"),
+        os.path.join(script_dir, "background.mp3"),
+        os.path.join(cwd, "background.mp3"),
     ]
 
     for tee in kandidaadid:
