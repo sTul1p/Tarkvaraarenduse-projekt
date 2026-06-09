@@ -31,7 +31,6 @@ clock    = pygame.time.Clock()
 
 
 #Helilaadur
-
 def laadi_heli(failinimi):
     """Otsib helifaili skripti kaustast ja töökataloogist.
     Tagastab pygame.Sound objekti või None, kui faili ei leita."""
