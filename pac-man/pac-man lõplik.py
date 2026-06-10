@@ -1,4 +1,4 @@
-import pygame, sys, random
+import pygame, sys, random, math
 from collections import deque
 
 TILE = 28
@@ -44,6 +44,9 @@ SCARED = (30,30,200)
 ORANGE = (255,160,0)
 DOT_C  = (255,200,120)
 
+# Animatsiooni kaadrid – suu avamisnurk kraadides
+MOUTH_FRAMES = [5, 15, 25, 35, 25, 15]
+
 
 def build_maze():
     """Ehita labirint: 1=sein, 0=tühi, 2=pellet, 3=power-up"""
@@ -82,22 +85,74 @@ def bfs_next(maze, start, goal):
     return None
 
 
+def draw_pacman_shape(surf, cx, cy, radius, direction, mouth_deg):
+    """
+    Joonistab Pac-Mani kiilulaadse kujuga (polygon + arc).
+    cx, cy   – keskpunkti koordinaadid
+    radius   – raadius pikslites
+    direction – (dr, dc) liikumissuund
+    mouth_deg – suu avamisnurk kraadides (0–45)
+
+    Allikas: pygame.org/docs/ref/draw.html – polygon ja arc kasutus
+    Inspiratsioon: github.com/hbokmann/Pacman – suuna-põhine joonistus
+    """
+
+    # Teisenda liikumissuund nurgaks radiaanides
+    # pygame arc: 0° = parem, kasvab vastupäeva
+    suuna_nurk = {
+        (0, 1):  0,           # parem
+        (0, -1): math.pi,     # vasak
+        (-1, 0): math.pi / 2, # üles
+        (1, 0):  math.pi * 3 / 2,  # alla
+    }
+    # Kui mäng alles algab (suund 0,0), näita paremale
+    nurk = suuna_nurk.get(direction, 0)
+
+    # Suu avamisnurk radiaanides
+    suu = math.radians(mouth_deg)
+
+    # Kaare algus- ja lõppnurk (suu vahel jäetud tühik)
+    arc_algus = nurk + suu
+    arc_lopp  = nurk + 2 * math.pi - suu
+
+    # Loome polügooni: keskpunkt + kaare punktid
+    punktid = [(cx, cy)]
+    sammud = 30  # mitu punkti kaarel (sujuvus)
+    for i in range(sammud + 1):
+        t = arc_algus + (arc_lopp - arc_algus) * i / sammud
+        px = cx + radius * math.cos(t)
+        py = cy - radius * math.sin(t)  # y on ekraanil pööratud
+        punktid.append((px, py))
+
+    pygame.draw.polygon(surf, YELLOW, punktid)
+
+    # Silm – väike must punkt
+    silma_nurk = nurk + math.pi / 3   # 60° ülespoole suunast
+    silma_r    = radius * 0.35
+    sx = int(cx + silma_r * math.cos(silma_nurk))
+    sy = int(cy - silma_r * math.sin(silma_nurk))
+    pygame.draw.circle(surf, BLACK, (sx, sy), max(2, radius // 7))
+
+
 class Pacman:
     def __init__(self):
         self.r, self.c = 17, 10
-        self.dir  = (0, 0)
-        self.want = (0, 0)
+        self.dir  = (0, 1)   # algsuund: parem
+        self.want = (0, 1)
         self.lives = 3
         self.score = 0
-        self.power = 0   # kaadrid järel
+        self.power = 0       # power-up kaadrid järel
+        self.anim  = 0       # animatsioonikaader (0–5)
 
     def handle(self, key):
+        """Salvestab soovitud liikumissuuna klahvivajutuse põhjal."""
         d = {pygame.K_UP:(-1,0), pygame.K_DOWN:(1,0),
              pygame.K_LEFT:(0,-1), pygame.K_RIGHT:(0,1)}
         if key in d:
             self.want = d[key]
 
     def move(self, maze):
+        """Liigutab Pac-Mani ja töötleb toidu söömise."""
         # Proovi soovitud suund, siis praegune
         for dr, dc in (self.want, self.dir):
             nr, nc = self.r + dr, (self.c + dc) % COLS
@@ -105,6 +160,10 @@ class Pacman:
                 self.dir = (dr, dc)
                 self.r, self.c = nr, nc
                 break
+
+        # Uuenda animatsioonikaadrit
+        self.anim = (self.anim + 1) % len(MOUTH_FRAMES)
+
         # Söö pellet
         v = maze[self.r][self.c]
         if v == 2:
@@ -118,8 +177,11 @@ class Pacman:
             self.power -= 1
 
     def draw(self, surf):
-        x, y = self.c*TILE + TILE//2, self.r*TILE + TILE//2
-        pygame.draw.circle(surf, YELLOW, (x, y), TILE//2 - 2)
+        """Joonistab Pac-Mani animeeritud suuga kiilukaujuna."""
+        cx = self.c * TILE + TILE // 2
+        cy = self.r * TILE + TILE // 2
+        mouth_deg = MOUTH_FRAMES[self.anim]
+        draw_pacman_shape(surf, cx, cy, TILE // 2 - 1, self.dir, mouth_deg)
 
 
 class Ghost:
@@ -132,6 +194,7 @@ class Ghost:
         self.timer = 0
 
     def move(self, maze, pac):
+        """Liigutab kummitust – hirmunud: juhuslik, normaalne: BFS."""
         self.timer += 1
         if self.timer < 2:
             return
@@ -148,7 +211,7 @@ class Ghost:
                 self.r, self.c = random.choice(opts)
             return
 
-        # Sihtmärk: Pinky sihib 3 sammu ette, Blinky mängijat otse
+        # Sihtmärk: Pinky sihib 3 sammu ette, Blinky otse mängijat
         if self.predictive:
             gr = max(0, min(ROWS-1, pac.r + pac.dir[0]*3))
             gc = max(0, min(COLS-1, pac.c + pac.dir[1]*3))
@@ -161,10 +224,20 @@ class Ghost:
             self.r, self.c = nxt
 
     def draw(self, surf):
+        """Joonistab kummituse – sinine kui hirmul, muidu oma värv."""
         x, y = self.c*TILE + TILE//2, self.r*TILE + TILE//2
         col = SCARED if self.scared > 0 else self.color
+        # Keha – ümar ülaosa
         pygame.draw.circle(surf, col, (x, y-2), TILE//2-2)
+        # Ristkülikukujuline alakeha
         pygame.draw.rect(surf, col, (x-TILE//2+2, y, TILE-4, TILE//2-2))
+        # "Seelikusakid" – kolm väikest poolkaart allservas
+        sakk_r = (TILE-4) // 6
+        for i in range(3):
+            sx = x - TILE//2 + 2 + sakk_r + i * sakk_r * 2
+            sy = y + TILE//2 - 2
+            pygame.draw.circle(surf, BLACK, (sx, sy), sakk_r)
+        # Silmad (ainult normaalne olek)
         if self.scared == 0:
             for ex in (-4, 4):
                 pygame.draw.circle(surf, WHITE, (x+ex, y-4), 3)
@@ -172,6 +245,7 @@ class Ghost:
 
 
 def draw_maze(surf, maze):
+    """Joonistab labiirindi seinad, pelletid ja power-upid."""
     for r in range(ROWS):
         for c in range(COLS):
             x, y = c*TILE, r*TILE
@@ -194,6 +268,7 @@ def main():
     font_big = pygame.font.SysFont("Arial", 40, bold=True)
 
     def reset():
+        """Lähtestab mänguseisundi."""
         maze, g_pos = build_maze()
         pac = Pacman()
         g1 = g_pos[0] if len(g_pos) > 0 else (7, 8)
@@ -223,33 +298,37 @@ def main():
                 if pac.power > 0:
                     g.scared = max(g.scared, 20)
                 g.move(maze, pac)
-                # Kokkupõrge
+                # Kokkupõrge kummitusega
                 if g.r == pac.r and g.c == pac.c:
                     if g.scared > 0:
+                        # Pac-Man sööb kummituse – tagasi koju
                         g.r, g.c = g.home
                         g.scared = 0
                         pac.score += 200
                     else:
+                        # Kaotab elu
                         pac.lives -= 1
                         pac.r, pac.c = 17, 10
-                        pac.dir = pac.want = (0, 0)
+                        pac.dir = pac.want = (0, 1)
                         if pac.lives <= 0:
                             state = "lose"
+            # Võit: kõik pelletid ja power-upid söödud
             if all(v not in (2, 3) for row in maze for v in row):
                 state = "win"
 
-        #Joonistus
+        # --- Joonistamine ---
         screen.fill(BLACK)
         draw_maze(screen, maze)
         pac.draw(screen)
         for g in ghosts:
             g.draw(screen)
 
-        # HUD
+        # HUD – skoor ja elud
         pygame.draw.rect(screen, BLACK, (0, ROWS*TILE, W, 48))
         screen.blit(font.render(f"Skoor: {pac.score}", True, WHITE), (10, ROWS*TILE+12))
         screen.blit(font.render("♥ " * pac.lives, True, RED), (W-130, ROWS*TILE+12))
 
+        # Mängu lõpu sõnum
         if state != "play":
             msg = "VÕIT!" if state == "win" else "MÄNG LÄBI"
             col = YELLOW if state == "win" else RED
@@ -264,4 +343,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-#https://justtothepoint.com/code/pacman/
+# Allikad:
+# https://www.pygame.org/docs/ref/draw.html   – polygon ja math kasutus kuju jaoks
+# https://justtothepoint.com/code/pacman/     – suuna-põhine joonistusviis
+# https://github.com/hbokmann/Pacman          – animatsiooni lähenemine
