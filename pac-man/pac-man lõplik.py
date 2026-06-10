@@ -344,6 +344,6 @@ if __name__ == "__main__":
     main()
 
 # Allikad:
-# https://www.pygame.org/docs/ref/draw.html   – polygon ja math kasutus kuju jaoks
-# https://justtothepoint.com/code/pacman/     – suuna-põhine joonistusviis
-# https://github.com/hbokmann/Pacman          – animatsiooni lähenemine
+# https://www.pygame.org/docs/ref/draw.html -polygon ja math kasutus kuju jaoks
+# https://justtothepoint.com/code/pacman/   -suuna-põhine joonistusviis
+# https://github.com/hbokmann/Pacman   -animatsiooni lähenemine
